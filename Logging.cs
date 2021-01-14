@@ -22,6 +22,7 @@ namespace Logging {
 
 
 	public class Logger {
+
 		/// <summary>
 		/// Il template del file log creato (la stringa <c>yyyyMMdd</c> viene automaticamente sostituita con il valore di <c>DateTime.Now</c>)
 		/// <para>Esempio: Log_yyyyMMdd.txt  -->  Log_19000101.txt</para>
