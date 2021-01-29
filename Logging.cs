@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace Logging {
@@ -11,18 +12,31 @@ namespace Logging {
 		Warning = 2
 	}
 
+	/// <summary>
+	/// Contenitore per tutte le informazioni che vengono inserite per ogni log
+	/// </summary>
 	public struct LogData {
+		/// <summary>
+		/// Data di generazione del log
+		/// </summary>
 		public DateTime Date { get; set; }
+		/// <summary>
+		/// Tipo del log specificato
+		/// </summary>
 		public eLogType Type { get; set; }
+		/// <summary>
+		/// Messaggio inserito o generato dall'eccezione
+		/// </summary>
 		public string Message { get; set; }
 		public string Source { get; set; }
 		public string StackTrace { get; set; }
 		public string TargetSite { get; set; }
 	}
 
-
+	/// <summary>
+	/// Classe per scrivere e leggere log in formato JSON
+	/// </summary>
 	public class Logger {
-
 		/// <summary>
 		/// Il template del file log creato (la stringa <c>yyyyMMdd</c> viene automaticamente sostituita con il valore di <c>DateTime.Now</c>)
 		/// <para>Esempio: Log_yyyyMMdd.txt  -->  Log_19000101.txt</para>
@@ -57,6 +71,12 @@ namespace Logging {
 			}
 		}
 
+		/// <summary>
+		/// Imposta se i messaggi scritti da log devo avere un struttura più verbosa. I caso di oggetti Exception vengono inserite anche tutti i messaggi di tutte le InnerException presenti.
+		/// <para>FALSE di default</para>
+		/// </summary>
+		public static bool Verbose { get; set; } = false;
+
 
 		private static WriterThread MainWriter { get; set; } = new WriterThread("MainWriter");
 		private static WriterThread SecondWriter { get; set; } = new WriterThread("SecondWriter");
@@ -67,19 +87,52 @@ namespace Logging {
 		/// Crea e scrive su un file di testo le informazioni dell'eccezione passata. 
 		/// Il file se creato presenta come nome quello presente nella FileNameTemplate oppure quello generato dalla FileNameCreator.
 		/// </summary>
-		public static void Write(eLogType MessageType, Exception Ex) {
+		public static void Write<T>(eLogType MessageType, T Ex) where T : Exception {
 			if (Ex is null) {
 				throw new ArgumentNullException("Ex");
 			}
 
 			try {
+				string strMessage = CreateObjectMessage(Ex, Logger.Verbose);
+
 				//
 				// Creo il mio oggetto da scrivere
 				//
 				LogData obj = new LogData {
 					Date = DateTime.Now,
 					Type = MessageType,
-					Message = Ex.Message.Trim(),
+					Message = strMessage,
+					Source = Ex.Source,
+					StackTrace = Ex.StackTrace,
+					TargetSite = Ex.TargetSite?.ToString()
+				};
+
+				QueueAndWrite(obj);
+			}
+			catch (Exception ex) {
+				Console.WriteLine("Logger.Write -> ", ex.Message);
+			}
+		}
+
+		/// <summary>
+		/// Crea e scrive su un file di testo le informazioni dell'eccezione passata. 
+		/// Il file se creato presenta come nome quello presente nella FileNameTemplate oppure quello generato dalla FileNameCreator.
+		/// </summary>
+		public static void Write<T>(eLogType MessageType, T Ex, bool Verbose) where T : Exception {
+			if (Ex is null) {
+				throw new ArgumentNullException("Ex");
+			}
+
+			try {
+				string strMessage = CreateObjectMessage(Ex, Verbose);
+
+				//
+				// Creo il mio oggetto da scrivere
+				//
+				LogData obj = new LogData {
+					Date = DateTime.Now,
+					Type = MessageType,
+					Message = strMessage,
 					Source = Ex.Source,
 					StackTrace = Ex.StackTrace,
 					TargetSite = Ex.TargetSite?.ToString()
@@ -209,6 +262,7 @@ namespace Logging {
 		/// </summary>
 		/// <param name="MinDate"></param>
 		/// <param name="MaxDate"></param>
+		/// <param name="FileName"></param>
 		/// <returns></returns>
 		public static Dictionary<FileInfo, List<LogData>> GetLogsByName(string FileName) {
 			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
@@ -305,6 +359,28 @@ namespace Logging {
 			}
 		}
 
+		private static string CreateObjectMessage<T>(T Ex, bool Verbose) where T : Exception {
+			string strMessage = "";
+
+			if (Verbose) {
+				strMessage += $"Generated exceptions:\n- Exception Name: {Ex.GetType().FullName} " +
+								$"\n- Exception Message: {Ex.Message}";
+
+				Exception objInnerEx = Ex;
+				while (objInnerEx.InnerException != null) {
+					objInnerEx = Ex.InnerException;
+
+					strMessage += $"\n\n- InnerException Name: {objInnerEx.GetType().FullName} " +
+									$"\n- InnerException Message: {objInnerEx.Message}";
+				}
+			}
+			else {
+				strMessage = Ex.GetType().FullName + " : " + Ex.Message;
+			}
+
+			return strMessage;
+		}
+
 
 
 		private class WriterThread {
@@ -338,12 +414,36 @@ namespace Logging {
 					string strTextToAdd = JsonConvert.SerializeObject(lstLogs, JsonFormatting);
 
 					if (File.Exists(strFilePath)) {
-						FileStream objFileStream = new FileStream(strFilePath, FileMode.Open, FileAccess.ReadWrite);
-						if (objFileStream.Length > 0) {
-							objFileStream.SetLength(objFileStream.Length - 3);
-							strTextToAdd = "," + strTextToAdd.Trim('[', ']') + "]";
+						using (FileStream objFileStream = new FileStream(strFilePath, FileMode.Open, FileAccess.ReadWrite)) {
+
+							if (objFileStream.Length > 0) {
+								int iCharOffset = 8;
+
+								objFileStream.Seek(-iCharOffset, SeekOrigin.End);
+
+								byte[] array = new byte[iCharOffset];
+								int iReadBytes = 0;
+								int iBytesOffeset = iCharOffset;
+
+								while (iBytesOffeset > 0) {
+									int n = objFileStream.Read(array, iReadBytes, iBytesOffeset);
+
+									if (n == 0)
+										break;
+
+									iReadBytes += n;
+									iBytesOffeset -= n;
+								}
+
+								string str = Encoding.Default.GetString(array);
+
+								str = str.TrimEnd(']', '\n', '\r');
+
+								objFileStream.SetLength(objFileStream.Length - iCharOffset);
+
+								strTextToAdd = str + "," + strTextToAdd.Trim('[', ']') + "]";
+							}
 						}
-						objFileStream.Close();
 					}
 
 					File.AppendAllText(strFilePath, strTextToAdd);

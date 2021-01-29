@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Logging</name>
+    </assembly>
+    <members>
+        <member name="T:Logging.LogData">
+            <summary>
+            Contenitore per tutte le informazioni che vengono inserite per ogni log
+            </summary>
+        </member>
+        <member name="P:Logging.LogData.Date">
+            <summary>
+            Data di generazione del log
+            </summary>
+        </member>
+        <member name="P:Logging.LogData.Type">
+            <summary>
+            Tipo del log specificato
+            </summary>
+        </member>
+        <member name="P:Logging.LogData.Message">
+            <summary>
+            Messaggio inserito o generato dall'eccezione
+            </summary>
+        </member>
+        <member name="T:Logging.Logger">
+            <summary>
+            Classe per scrivere e leggere log in formato JSON
+            </summary>
+        </member>
+        <member name="P:Logging.Logger.FileNameTemplate">
+            <summary>
+            Il template del file log creato (la stringa <c>yyyyMMdd</c> viene automaticamente sostituita con il valore di <c>DateTime.Now</c>)
+            <para>Esempio: Log_yyyyMMdd.txt  -->  Log_19000101.txt</para>
+            </summary>
+        </member>
+        <member name="P:Logging.Logger.FileNameCreator">
+            <summary>
+            Funzione chiamata alla creazione del nome del file di testo da creare/cercare.
+            <para>NULL di default</para>
+            </summary>
+        </member>
+        <member name="P:Logging.Logger.TargetDirectoryPath">
+            <summary>
+            La directory dove verranno salvati e letti i file di log generati.
+            <para>C:\Logger\Log di default</para>
+            </summary>
+        </member>
+        <member name="P:Logging.Logger.FormattingReadable">
+            <summary>
+            Imposta se la formattazione dell'oggetto JSON scritto su file deve essere indentata o no
+            <para>TRUE di default</para>
+            </summary>
+            <param name="Readable"></param>
+        </member>
+        <member name="P:Logging.Logger.Verbose">
+            <summary>
+            Imposta se i messaggi scritti da log devo avere un struttura più verbosa. I caso di oggetti Exception vengono inserite anche tutti i messaggi di tutte le InnerException presenti.
+            <para>FALSE di default</para>
+            </summary>
+        </member>
+        <member name="M:Logging.Logger.Write``1(Logging.eLogType,``0)">
+            <summary>
+            Crea e scrive su un file di testo le informazioni dell'eccezione passata. 
+            Il file se creato presenta come nome quello presente nella FileNameTemplate oppure quello generato dalla FileNameCreator.
+            </summary>
+        </member>
+        <member name="M:Logging.Logger.Write``1(Logging.eLogType,``0,System.Boolean)">
+            <summary>
+            Crea e scrive su un file di testo le informazioni dell'eccezione passata. 
+            Il file se creato presenta come nome quello presente nella FileNameTemplate oppure quello generato dalla FileNameCreator.
+            </summary>
+        </member>
+        <member name="M:Logging.Logger.Write(Logging.eLogType,System.String)">
+            <summary>
+            Crea e scrive su un file di testo il messaggio passato come parametro e del tipo specificato. 
+            Il file se creato presenta come nome quello presente nella FileNameTemplate oppure quello generato dalla FileNameCreator.
+            </summary>
+        </member>
+        <member name="M:Logging.Logger.GetLogsByDate(System.DateTime)">
+            <summary>
+            Cerca di recuperare tutti i file creati nella data passata come parametro.
+            Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.
+            </summary>
+            <param name="FilterDate"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Logging.Logger.GetLogsByDateRange(System.DateTime,System.DateTime)">
+            <summary>
+            Cerca di recuperare tutti i file creati tra le due date (comprese) passate come parametro.
+            Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro
+            </summary>
+            <param name="MinDate"></param>
+            <param name="MaxDate"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Logging.Logger.GetLogsByName(System.String)">
+            <summary>
+            Cerca il file con il nome passato come parametro.
+            Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.
+            </summary>
+            <param name="MinDate"></param>
+            <param name="MaxDate"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Logging.Logger.GetWriter(System.String)">
+            <summary>
+            Restituisce il WriterThread corretto basandosi sul nome del file di destinazione passato e i parametri degli oggetti WriterThread
+            </summary>
+            <param name="FileName"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>
