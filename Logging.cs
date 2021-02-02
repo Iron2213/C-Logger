@@ -178,10 +178,9 @@ namespace Logging {
 
 		/// <summary>
 		/// Cerca di recuperare tutti i file creati nella data passata come parametro.
-		/// Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.
 		/// </summary>
 		/// <param name="FilterDate"></param>
-		/// <returns></returns>
+		/// <returns>Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.</returns>
 		public static Dictionary<FileInfo, List<LogData>> GetLogsByDate(DateTime FilterDate) {
 			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
 				throw new ArgumentNullException("TargetDirectoryPath cannot be null or empty");
@@ -190,9 +189,6 @@ namespace Logging {
 			Dictionary<FileInfo, List<LogData>> lstFileLogs = new Dictionary<FileInfo, List<LogData>>();
 
 			if (Directory.Exists(TargetDirectoryPath)) {
-				//
-				// Recupero tutti i file con la data passata come parametro
-				//
 				string[] objFilesPaths = Directory.GetFiles(TargetDirectoryPath);
 
 				if (objFilesPaths.Length > 0) {
@@ -217,11 +213,10 @@ namespace Logging {
 
 		/// <summary>
 		/// Cerca di recuperare tutti i file creati tra le due date (comprese) passate come parametro.
-		/// Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro
 		/// </summary>
 		/// <param name="MinDate"></param>
 		/// <param name="MaxDate"></param>
-		/// <returns></returns>
+		/// <returns>Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro</returns>
 		public static Dictionary<FileInfo, List<LogData>> GetLogsByDateRange(DateTime MinDate, DateTime MaxDate) {
 			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
 				throw new ArgumentNullException("TargetDirectoryPath cannot be null or empty");
@@ -258,12 +253,9 @@ namespace Logging {
 
 		/// <summary>
 		/// Cerca il file con il nome passato come parametro.
-		/// Ritorna un Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.
 		/// </summary>
-		/// <param name="MinDate"></param>
-		/// <param name="MaxDate"></param>
-		/// <param name="FileName"></param>
-		/// <returns></returns>
+		/// <param name="FileName">Il nome del file da cancellare</param>
+		/// <returns>Dictionary contente le informazioni sui file trovati e una lista di LogData per ognuno di loro.</returns>
 		public static Dictionary<FileInfo, List<LogData>> GetLogsByName(string FileName) {
 			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
 				throw new ArgumentNullException("TargetDirectoryPath cannot be null or empty");
@@ -303,6 +295,73 @@ namespace Logging {
 			return lstFileLogs;
 		}
 
+
+
+		/// <summary>
+		/// Elimina tutti i file creati nella data passata come parametro.
+		/// </summary>
+		/// <param name="MatchingDate"></param>
+		/// <returns>Il numero di file eliminati.</returns>
+		public static int DeleteLogsByDate(DateTime MatchingDate) {
+			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
+				throw new ArgumentNullException("TargetDirectoryPath cannot be null or empty");
+			}
+
+			int iDeletedFiles = 0;
+
+			if (Directory.Exists(TargetDirectoryPath)) {
+				string[] objFilesPaths = Directory.GetFiles(TargetDirectoryPath);
+
+				if (objFilesPaths.Length > 0) {
+					//
+					// Ciclo tutti i file e ne recupero i dati JSON
+					//
+					foreach (string strFilePath in objFilesPaths) {
+						DateTime objFileCreationTime = File.GetCreationTime(strFilePath);
+						if (MatchingDate.Date.Equals(objFileCreationTime.Date)) {
+							File.Delete(strFilePath);
+							iDeletedFiles++;
+						}
+					}
+				}
+			}
+
+			return iDeletedFiles;
+		}
+
+		/// <summary>
+		/// Elimina tutti i file creati tra le due date (comprese) passate come parametro.
+		/// </summary>
+		/// <param name="StartDate"></param>
+		/// <param name="EndDate"></param>
+		/// <returns>Il numero di file eliminati.</returns>
+		public static int DeleteLogsByDateRange(DateTime StartDate, DateTime EndDate) {
+			if (string.IsNullOrEmpty(TargetDirectoryPath)) {
+				throw new ArgumentNullException("TargetDirectoryPath cannot be null or empty");
+			}
+
+			int iDeletedFiles = 0;
+
+			if (Directory.Exists(TargetDirectoryPath)) {
+				string[] objFilesPaths = Directory.GetFiles(TargetDirectoryPath);
+
+				if (objFilesPaths.Length > 0) {
+					//
+					// Ciclo tutti i file e ne recupero i dati JSON
+					//
+					foreach (string strFilePath in objFilesPaths) {
+						DateTime objFileCreationTime = File.GetCreationTime(strFilePath);
+						if (StartDate.Date <= objFileCreationTime.Date
+							&& objFileCreationTime.Date <= EndDate.Date) {
+							File.Delete(strFilePath);
+							iDeletedFiles++;
+						}
+					}
+				}
+			}
+
+			return iDeletedFiles;
+		}
 
 
 		private static void QueueAndWrite(LogData JsonObj) {
